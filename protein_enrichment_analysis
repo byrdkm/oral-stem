@@ -1,0 +1,85 @@
+import math
+import pandas as pd
+import plotly
+import numpy as np
+import plotly.plotly as py
+import plotly.graph_objs as go
+
+plotly.tools.set_credentials_file(username='natpie1',
+                                api_key='bjhv6wPhJexpjfwUExkJ')
+file_path = "/Users/Nat/Dropbox/Williams Lab/4. Data Collection/Egfr_Lrig1_IDCs-14d_180604.xlsx"
+
+"""
+--File Setup--
+
+The file should have, at the minimum, a column for Lrig1 label intensity
+('lrig'), EGFR label intensity ('egfr'), and GFP label intensity ('gfp').
+An additional column for topography ('topo') can be used as well.
+All relevant data points should be accesible on one excel sheet.
+
+--Execution--
+
+1. Set plotly credentials
+2. Assign file path for excel sheet to object 'file_path'
+3. Assign appropriate sheet number to object 'sheet_name'
+4. Select data by topography or location if necessary
+5. Use command prompt 'python clonedensity.py graphname'
+
+"""
+
+xl = pd.read_excel(file_path, sheet_name=2)
+lrig = np.array(xl.loc[:, "lrig"])
+egfr = np.array(xl.loc[:, "egfr"])
+gfp = np.array(xl.loc[:, "gfp"])
+
+"""
+#--Optional Modifier--
+
+#Topography
+
+topo = np.array(xl.loc[:, "topo"])
+lrig = lrig[topo == 'R']
+egfr = egfr[topo == 'R']
+gfp = gfp[topo == 'R']
+"""
+
+trace = go.Scatter(
+    x = egfr,
+    y = lrig,
+    mode = 'markers',
+    marker = dict(
+        color = gfp,
+        colorscale = [[0, '#ffffff'], [0.25, '#ffffff'],
+                      [0.5, '#33ff33'], [1, '#009900']],
+        showscale = True,
+        size = 6,
+        line = dict(width=.5),
+    )
+)
+data = [trace]
+layout = go.Layout(
+    width = 600,
+    height = 500,
+    margin = dict(
+        t = 80
+    ),
+    title = "<b>Lrig1 and EGFR Enrichment<b>",
+    font = dict(
+        family = "Arial",
+        size = 28,
+    ),
+    xaxis = dict(
+        title = "EGFR",
+        showline = True,
+    ),
+    yaxis = dict(
+        title = "Lrig1",
+        showline = True,
+    ),
+)
+
+lrig_egfr_figure = go.Figure(data = data, layout = layout)
+
+if __name__ == '__main__':
+    py.plot(lrig_egfr_figure,
+        filename = sys.argv[1])
