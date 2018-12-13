@@ -1,8 +1,8 @@
 import sys
 import math
 import pandas as pd
-import plotly
 import numpy as np
+import plotly
 import plotly.plotly as py
 import plotly.graph_objs as go
 import plotly.figure_factory as ff
@@ -35,7 +35,7 @@ suprabasal = np.array(xl.loc[:, "Suprabasal"]).astype(int)
 mouse = np.array(xl.loc[:, "Mouse"])
 
 """
---Optional Modifiers--
+#--Optional Modifiers--
 
 #Topography
 
@@ -58,10 +58,10 @@ def clone_array(b, sb, d):
     suprabasal cells (sb), and an integer dimension (d).
 
     The function returns a 2d array:
-    
+
         axis0 = suprabasal cells, length d + 1
         axis1 = basal cells, length d
-        
+
     Each element in the array is the counts of occurences of a clone with
     associated dimensions. Clones with zero basal cells will be assumed
     delaminated clones and will not be included in the array.
@@ -72,7 +72,7 @@ def clone_array(b, sb, d):
     for index, bcells in enumerate(b):
         if bcells != 0:
             output[sb[index], bcells - 1] += 1
-    return(output)
+    return output
 
 def sample_arrays(b, sb, m, d):
     """
@@ -81,11 +81,11 @@ def sample_arrays(b, sb, m, d):
     an integer dimension (d).
 
     The function returns a 3d array:
-    
+
         axis0 = samples in data set
         axis1 = suprabasal cells, length d + 1
         axis2 = basal cells, length d
-        
+
     Each element in the array is the count sfor each occurence for a clone of the
     associated size. Each mouse is considered one sample.
     """
@@ -96,11 +96,11 @@ def sample_arrays(b, sb, m, d):
 def percent_arrays(b, sb, m, d):
     """
     This function returns a 3d array:
-    
+
         axis0 = samples in data set
         axis1 = suprabasal cells, length d + 1
         axis2 = basal cells, length d
-        
+
     Each element in the array is a percentage of clones of the associated size
     for a single sample.
     """
@@ -114,10 +114,10 @@ def percent_arrays(b, sb, m, d):
 def normalized_array(b, sb, m, d):
     """
     This function returns a 2d array:
-    
+
         axis0 = suprabasal cells, length d + 1
         axis1 = basal cells, length d
-        
+
     Each element in the array is a normalized percentage of clones of the
     associated size within the entire data set.
     """
@@ -128,40 +128,3 @@ def normalized_array(b, sb, m, d):
 def error_text(b, sb, m, d):
     """
     This function returns a 2d list:
-    
-        axis0 = suprabasal cells, length d + 1
-        axis1 = basal cells, length d
-
-    Each element in the list is the standard error of the mean for the
-    corresponding clone size. If there are no clones of a certain size in the
-    data set, the error returned is an empty string. The error is rounded to
-    two decimal places. The sample size used in computing standard deviation
-    has been modified with Bessel's correction.
-    """
-    data = percent_arrays(b, sb, m, d)
-    std = np.std(data, axis=0, ddof=1)
-    mean_error = np.divide(std, math.sqrt(len(data)))
-    mean_error = np.around(mean_error, decimals=2).tolist()
-    output = [['' if x==0 else x for x in row] for row in mean_error]
-    return output
-
-def figure(b, sb, m, d):
-    """
-    This function returns a plotly graph object.
-
-    This object contains the information necessary to produce the final graph:
-    the data, axis ranges, error information, and colorscale.
-    """
-    fig = ff.create_annotated_heatmap(
-        normalized_array(b, sb, m, d),
-        x = list(np.arange(1, d+1)),
-        y = list(np.arange(d+1)),
-        annotation_text = error_text(b, sb, m, d),
-        colorscale = 'Greens',
-        reversescale = True)
-    return fig
-
-if __name__ == '__main__':
-    py.plot(figure(basal, suprabasal, mouse, 12),
-            filename=sys.argv[1])
-
