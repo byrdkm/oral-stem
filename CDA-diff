@@ -1,0 +1,120 @@
+import sys
+import math
+import os
+import numpy as np
+import pandas as pd
+ogdir = os.getcwd()
+
+### BEGINNING OF USER MODIFICATION ###
+
+# The following script will create a 13x12 array outputted in .csv form of
+# normalized clone counts. This .csv can then be visualized using plot.ly
+# or any other kind of graphing software.
+
+# Alter file_name1 and file_path1 to create a path top the excel sheet
+# containing lineage trace data.
+# Three columns in the sheet must be labeled Basal (basal cell number per clone),
+# Suprabasal (suprabasal cell number per clone), and Mouse (sample name).
+file_name1 = "creER_14d_Palate_WT_190802.xlsx"
+file_path1 = "/Users/nat/Dropbox/Williams Lab/4. Data Collection/"+ file_name1
+
+# If not doing subtraction, just change first path/name and ignore below.
+# If doing subtraction, repeat with the second datasheet below.
+file_name2 = "creER_14d_Palate_WT_190802.xlsx"
+file_path2 = "/Users/nat/Dropbox/Williams Lab/4. Data Collection/" + file_name2
+
+# Replace output_dir with directory for output .csv to go.
+output_dir = '/Users/nat/Desktop/'
+
+# Replace subtract with either 'NO' or 'YES' if want a subtraction graph.
+subtract = 'NO'
+# Replace mytopo with either 'NO','R','IR', or 'JZ' if want niche graphs.
+mytopo = 'NO'
+# Replace name with the desired name of output .csv.
+name = '14d_lrig_igfbp5_ant_190814'
+
+### END OF USER MODIFICATION ###
+
+xl1 = pd.read_excel(file_path1, sheet_name=2)
+basal1 = np.array(xl1.loc[:, "Basal"]).astype(int)
+suprabasal1 = np.array(xl1.loc[:, "Suprabasal"]).astype(int)
+mouse1 = np.array(xl1.loc[:, "Mouse"])
+
+if subtract == 'YES':
+    xl2 = pd.read_excel(file_path2, sheet_name=1)
+    basal2 = np.array(xl2.loc[:, "Basal"]).astype(int)
+    suprabasal2 = np.array(xl2.loc[:, "Suprabasal"]).astype(int)
+    mouse2 = np.array(xl2.loc[:, "Mouse"])
+
+if mytopo != 'NO':
+    topo1 = np.array(xl1.loc[:, "Topography"])
+    basal1 = basal1[topo1 == mytopo]
+    suprabasal1 = suprabasal1[topo1 == mytopo]
+    mouse1 = mouse1[topo1 == mytopo]
+    if subtract == 'YES':
+        topo2 = np.array(xl2.loc[:, "Topography"])
+        basal2 = basal2[topo2 == mytopo]
+        suprabasal2 = suprabasal2[topo2 == mytopo]
+        mouse2 = mouse2[topo2 == mytopo]
+
+def clone_array(b, sb, d):
+    """
+    Create a 13x12 array of clone counts.
+    """
+    b[b > d] = d
+    sb[sb > d] = d
+    output = np.zeros((d + 1, d))
+    for index, bcells in enumerate(b):
+        if bcells != 0:
+            output[sb[index], bcells - 1] += 1
+    return output
+
+def sample_arrays(b, sb, m, d):
+    """
+    Create clone count arrays for each sample.
+    """
+    mice = np.unique(m)
+    output = [clone_array(b[m==i], sb[m==i], d) for i in mice]
+    return output
+
+def percent_arrays(b, sb, m, d):
+    """
+    Convert each sample array to percentages of total clone number.
+    """
+    mice_arrays = sample_arrays(b, sb, m, d)
+    sums = np.array([np.sum(array).astype(int) for array in mice_arrays])
+    output = []
+    for index, array in enumerate(mice_arrays):
+        if sums[index] != 0:
+            output.append(np.divide(array, sums[index]))
+        else:
+            output.append(0)
+    return output
+
+def normalized_array(b, sb, m, d):
+    """
+    Normalize the sample arrays into one.
+    """
+    percentage_arrays = percent_arrays(b, sb, m, d)
+    output = sum(percentage_arrays)/len(percentage_arrays)
+    return output
+
+def subtraction():
+    """"
+    Subtract two separate CDAs.
+    """
+    array1 = normalized_array(basal1, suprabasal1, mouse1, 12)
+    array2 = normalized_array(basal2, suprabasal2, mouse2, 12)
+    diff = np.subtract(array1, array2) #array1 - array2
+    return diff
+
+if subtract == 'NO':
+    mydata = normalized_array(basal1, suprabasal1, mouse1, 12)
+elif subtract == 'YES':
+    mydata = subtraction()
+else:
+    print('Uh oh! Your input for var subtract is invalid')
+
+os.chdir(output_dir)
+np.savetxt(name + '.csv', mydata)
+os.chdir(ogdir)
